@@ -51,7 +51,7 @@ npm install nillion-sv-wrappers
 Run examples
 
 ```
-node SecretVault/example.js
+node nilQl/example.js
 ```
 
 ### SecretVaultWrapper Example
