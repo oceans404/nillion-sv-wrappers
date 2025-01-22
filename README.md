@@ -67,3 +67,26 @@ Run example to encrypt and upload data to all nodes, then read data from nodes.
 ```
 node SecretVault/example.js
 ```
+
+Basic setup
+
+```
+const secretVaultCollection = new SecretVaultWrapper(
+    orgConfig.nodes,
+    orgConfig.orgCredentials,
+    collectionConfig.schemaId
+);
+await secretVaultCollection.init();
+
+const dataWritten = await secretVaultCollection.writeToNodes(
+    [{
+        _id: uuidv4(),
+        years_in_web3: 4,
+        responses: [
+            { rating: 5, question_number: 1 },
+            { rating: 3, question_number: 2 },
+        ],
+    },],
+    ['years_in_web3] // field to encrypt
+);
+```

@@ -40,8 +40,8 @@ async function main() {
     );
     await collection.init();
 
-    const schemas = await collection.listSchemas();
-    console.log('📚 Schemas:', schemas);
+    // const schemas = await collection.listSchemas();
+    // console.log('📚 Schemas:', schemas);
 
     const dataWritten = await collection.writeToNodes(
       web3ExperienceSurveyData,
@@ -67,7 +67,10 @@ async function main() {
       {},
       collectionConfig.encryptedFields
     );
-    console.log('📚 Data read from nodes:', dataRead);
+    console.log(
+      '📚 Data read first 3 records from nodes:',
+      dataRead.slice(0, 3)
+    );
 
     // const result = await collection.flushData();
     // console.log('🧹 Data flushed from nodes:', result);
