@@ -2,9 +2,7 @@ import { SecretVaultWrapper } from '../SecretVault/wrapper.js';
 import { orgConfig } from './orgConfig.js';
 import { v4 as uuidv4 } from 'uuid';
 
-const collectionConfig = {
-  schemaId: 'a5de8f53-821a-48a7-9a42-f31cbb7c71f0',
-};
+const SCHEMA_ID = 'a5de8f53-821a-48a7-9a42-f31cbb7c71f0';
 
 // $allot signals that the value will be encrypted to one $share per node before writing to the collection
 const web3ExperienceSurveyData = [
@@ -31,14 +29,11 @@ async function main() {
     const collection = new SecretVaultWrapper(
       orgConfig.nodes,
       orgConfig.orgCredentials,
-      collectionConfig.schemaId
+      SCHEMA_ID
     );
     await collection.init();
 
-    const dataWritten = await collection.writeToNodes(
-      web3ExperienceSurveyData,
-      collectionConfig.encryptedFields
-    );
+    const dataWritten = await collection.writeToNodes(web3ExperienceSurveyData);
 
     console.log('📚 Data written:', dataWritten[0].result.errors);
 
@@ -47,10 +42,7 @@ async function main() {
     ];
     console.log('created ids:', newIds);
 
-    const dataRead = await collection.readFromNodes(
-      {},
-      collectionConfig.encryptedFields
-    );
+    const dataRead = await collection.readFromNodes({});
     console.log(
       '📚 Data read first 3 records from nodes:',
       dataRead.slice(0, 3)
