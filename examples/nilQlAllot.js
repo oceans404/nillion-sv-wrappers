@@ -1,4 +1,4 @@
-import { NilQLWrapper } from './wrapper.js';
+import { NilQLWrapper } from '../nilQl/wrapper.js';
 
 /**
  * This is a standalone example of using NilQLWrapper to encrypt and decrypt data.
@@ -6,7 +6,16 @@ import { NilQLWrapper } from './wrapper.js';
  */
 async function main() {
   // Example data to encrypt
-  const secretData = 4269;
+  const secretData = {
+    _id: '83264c5a-27a9-4ec9-ab62-633045fad57e',
+    years_in_web3: { $allot: 4 },
+    responses: [
+      { rating: 5, question_number: 1 },
+      { rating: 3, question_number: 2 },
+    ],
+    _created: '2025-01-25T01:49:58.316Z',
+    _updated: '2025-01-25T01:49:58.316Z',
+  };
 
   // The cluster config just needs an array of nodes for NilQLWrapper
   // - When using NilQLWrapper alone: nodes can be empty objects or contain any fields
@@ -17,26 +26,14 @@ async function main() {
 
   try {
     // Initialize wrapper with cluster config
-    console.log('Initializing NilQLWrapper...');
     const encryptionWrapper = new NilQLWrapper(cluster);
     await encryptionWrapper.init();
-    console.log('NilQLWrapper initialized successfully');
 
-    console.log('\nOriginal data:', secretData);
+    const allotted = await encryptionWrapper.prepareAndAllot(secretData);
+    console.log('📚 Allot:', allotted);
 
-    // Encrypt data into multiple shares
-    console.log('\nEncrypting data...');
-    const shares = await encryptionWrapper.encrypt(secretData);
-    console.log('Data encrypted into shares:', shares);
-
-    // Decrypt shares back into original data
-    console.log('\nDecrypting shares...');
-    const decryptedData = await encryptionWrapper
-      .decrypt(shares)
-      .then((data) => data);
-
-    // Convert decrypted string back to number
-    console.log('Decrypted data:', Number(decryptedData));
+    const unified = await encryptionWrapper.unify(allotted);
+    console.log('📚 Unify:', unified);
   } catch (error) {
     console.error('Error:', error.message);
   }

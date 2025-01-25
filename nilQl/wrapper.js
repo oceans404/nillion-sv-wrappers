@@ -54,4 +54,64 @@ export class NilQLWrapper {
     const decryptedData = await nilql.decrypt(this.secretKey, shares);
     return decryptedData;
   }
+
+  /**
+   * Prepares data with $allot markers and splits into encrypted shares
+   * @param {object} data - Object with fields marked for encryption using $allot
+   * @throws {Error} If NilQLWrapper hasn't been initialized
+   * @returns {Promise<Array>} Array of encrypted shares for each node in cluster
+   */
+  async prepareAndAllot(data) {
+    if (!this.secretKey) {
+      throw new Error('NilQLWrapper not initialized. Call init() first.');
+    }
+    const encrypted = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === 'object' && '$allot' in value) {
+        encrypted[key] = {
+          $allot: await nilql.encrypt(this.secretKey, value.$allot),
+        };
+      } else {
+        encrypted[key] = value;
+      }
+    }
+
+    return nilql.allot(encrypted);
+  }
+
+  /**
+   * Recombines encrypted shares back into original data structure
+   * @param {Array} shares - Array of shares from prepareAndAllot
+   * @throws {Error} If NilQLWrapper hasn't been initialized
+   * @returns {Promise<object>} Original data structure with decrypted values
+   */
+  async unify(shares) {
+    let createdAtTimestamp = null;
+    let updatedAtTimestamp = null;
+    // Remove _created and _updated properties from each share before unifying
+    // These SecretVault timestamps are slightly different across nodes, and
+    // the unify function needs all data other than $shares to be exactly the same
+    const cleanedData = shares.map(({ _created, _updated, ...rest }, i) => {
+      if (i === 0) {
+        createdAtTimestamp = _created;
+        updatedAtTimestamp = _updated;
+      }
+
+      return rest;
+    });
+
+    if (!this.secretKey) {
+      throw new Error('NilQLWrapper not initialized. Call init() first.');
+    }
+    const unifiedResult = await nilql.unify(this.secretKey, cleanedData);
+
+    // Add back the created and updated timestamps from SecretVault if they existed
+    if (!!createdAtTimestamp) {
+      unifiedResult['_created'] = createdAtTimestamp;
+    }
+    if (!!updatedAtTimestamp) {
+      unifiedResult['_updated'] = updatedAtTimestamp;
+    }
+    return unifiedResult;
+  }
 }

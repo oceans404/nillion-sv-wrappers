@@ -1,7 +1,7 @@
 import { createJWT, ES256KSigner } from 'did-jwt';
 import { Buffer } from 'buffer';
 import { NilQLWrapper } from '../nilQl/wrapper.js';
-
+import { v4 as uuidv4 } from 'uuid';
 /**
  * SecretVaultWrapper manages distributed data storage across multiple nodes.
  * It handles node authentication, data distribution, and uses NilQLWrapper
@@ -14,11 +14,11 @@ import { NilQLWrapper } from '../nilQl/wrapper.js';
  * await vault.writeToNodes(data, ['sensitiveField']);
  */
 export class SecretVaultWrapper {
-  constructor(nodes, credentials, schemaId = null) {
+  constructor(nodes, credentials, schemaId = null, tokenExpirySeconds = 3600) {
     this.nodes = nodes;
     this.credentials = credentials;
     this.schemaId = schemaId;
-    this.tokenExpirySeconds = 3600; // 1 hour tokens
+    this.tokenExpirySeconds = tokenExpirySeconds;
     this.nilqlWrapper = null;
   }
 
@@ -46,6 +46,20 @@ export class SecretVaultWrapper {
       issuer: this.credentials.orgDid,
       signer,
     });
+  }
+
+  /**
+   * Generates tokens for all nodes and returns an array of objects containing node and token
+   * @returns {Promise<Array<{ node: string, token: string }>>} Array of nodes with their corresponding tokens
+   */
+  async generateTokensForAllNodes() {
+    const tokens = await Promise.all(
+      this.nodes.map(async (node) => {
+        const token = await this.generateNodeToken(node.did);
+        return { node: node.url, token };
+      })
+    );
+    return tokens;
   }
 
   /**
@@ -99,49 +113,13 @@ export class SecretVaultWrapper {
    * @param {array} fieldsToEncrypt - Fields to encrypt
    * @returns {Promise<array>} Array of transformed data for each node
    */
-  async transformDataToEncryptFields(data, fieldsToEncrypt = []) {
-    const nodesLength = this.nodes.length;
-
-    if (!fieldsToEncrypt?.length) return Array(nodesLength).fill(data);
-
-    const fields = Array.isArray(fieldsToEncrypt)
-      ? fieldsToEncrypt
-      : [fieldsToEncrypt];
-    const dataArray = Array.isArray(data) ? data : [data];
-
-    const valuesToEncrypt = new Set();
-    dataArray.forEach((item) => {
-      fields.forEach((field) => {
-        if (field in item) {
-          valuesToEncrypt.add(item[field]);
-        }
-      });
-    });
-
-    const encryptionResults = new Map();
-    for (const value of valuesToEncrypt) {
-      const shares = await this.nilqlWrapper.encrypt(value);
-      encryptionResults.set(value, shares);
+  async allotData(data) {
+    const encryptedRecords = [];
+    for (const item of data) {
+      const encryptedItem = await this.nilqlWrapper.prepareAndAllot(item);
+      encryptedRecords.push(encryptedItem);
     }
-
-    const result = Array(nodesLength)
-      .fill()
-      .map(() => []);
-
-    dataArray.forEach((item) => {
-      for (let shareIndex = 0; shareIndex < nodesLength; shareIndex++) {
-        const transformedItem = { ...item };
-        fields.forEach((field) => {
-          if (field in item) {
-            const shares = encryptionResults.get(item[field]);
-            transformedItem[field] = shares[shareIndex];
-          }
-        });
-        result[shareIndex].push(transformedItem);
-      }
-    });
-
-    return result;
+    return encryptedRecords;
   }
 
   /**
@@ -168,7 +146,7 @@ export class SecretVaultWrapper {
    * Lists schemas from all nodes in the org
    * @returns {Promise<array>} Array of schema results from each node
    */
-  async listSchemas() {
+  async getSchemas() {
     const results = [];
     for (const node of this.nodes) {
       const jwt = await this.generateNodeToken(node.did);
@@ -185,25 +163,78 @@ export class SecretVaultWrapper {
   }
 
   /**
+   * Creates a new schema on all nodes
+   * @param {object} schema - The schema to create
+   * @param {string} schemaName - The name of the schema
+   * @param {string} schemaId - Optional: The ID of the schema
+   * @returns {Promise<array>} Array of creation results from each node
+   */
+  async createSchema(schema, schemaName, schemaId = null) {
+    if (!schemaId) {
+      schemaId = uuidv4();
+    }
+    const schemaPayload = {
+      _id: schemaId,
+      name: schemaName,
+      keys: ['_id'],
+      schema,
+    };
+    const results = [];
+    for (const node of this.nodes) {
+      const jwt = await this.generateNodeToken(node.did);
+      const result = await this.makeRequest(
+        node.url,
+        'schemas',
+        jwt,
+        schemaPayload
+      );
+      results.push({ node: node.url, result });
+    }
+    return results;
+  }
+
+  /**
+   * Deletes a schema from all nodes
+   * @param {string} schemaId - The ID of the schema to delete
+   * @returns {Promise<array>} Array of deletion results from each node
+   */
+  async deleteSchema(schemaId) {
+    const results = [];
+    for (const node of this.nodes) {
+      const jwt = await this.generateNodeToken(node.did);
+      const result = await this.makeRequest(
+        node.url,
+        `schemas`,
+        jwt,
+        {
+          id: schemaId,
+        },
+        'DELETE'
+      );
+      results.push({ node: node.url, result });
+    }
+    return results;
+  }
+
+  /**
    * Writes data to all nodes, with optional field encryption
-   * @param {object|array} data - Data to write
-   * @param {array} fieldsToEncrypt - Fields to encrypt before writing
+   * @param {array} data - Data to write
    * @returns {Promise<array>} Array of write results from each node
    */
-  async writeToNodes(data, fieldsToEncrypt = []) {
-    const transformedData = await this.transformDataToEncryptFields(
-      data,
-      fieldsToEncrypt
-    );
+  async writeToNodes(data) {
+    const transformedData = await this.allotData(data);
     const results = [];
 
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i];
       try {
+        const nodeData = transformedData.map(
+          (encryptedShares) => encryptedShares[i]
+        );
         const jwt = await this.generateNodeToken(node.did);
         const payload = {
           schema: this.schemaId,
-          data: transformedData[i],
+          data: nodeData,
         };
         const result = await this.makeRequest(
           node.url,
@@ -224,10 +255,9 @@ export class SecretVaultWrapper {
   /**
    * Reads data from all nodes with optional decryption of specified fields
    * @param {object} filter - Filter criteria for reading data
-   * @param {array} fieldsToDecrypt - Fields to decrypt after reading
    * @returns {Promise<array>} Array of decrypted records
    */
-  async readFromNodes(filter = {}, fieldsToDecrypt = []) {
+  async readFromNodes(filter = {}) {
     const resultsFromAllNodes = [];
 
     for (const node of this.nodes) {
@@ -240,7 +270,6 @@ export class SecretVaultWrapper {
           jwt,
           payload
         );
-        const recordCount = result.data?.length || 0;
         resultsFromAllNodes.push({ node: node.url, data: result.data });
       } catch (error) {
         console.error(`❌ Failed to read from ${node.url}:`, error.message);
@@ -248,32 +277,27 @@ export class SecretVaultWrapper {
       }
     }
 
-    if (!fieldsToDecrypt?.length) {
-      return resultsFromAllNodes[0].data;
-    }
-
-    const recordGroups = resultsFromAllNodes[0].data.map((_, recordIndex) => {
-      const shares = resultsFromAllNodes.map(
-        (nodeResult) => nodeResult.data[recordIndex]
-      );
-      return { shares, recordIndex };
-    });
-
-    const decryptedRecords = await Promise.all(
-      recordGroups.map(async ({ shares, recordIndex }) => {
-        const record = { ...shares[0] };
-
-        for (const field of fieldsToDecrypt) {
-          if (field in record) {
-            const fieldShares = shares.map((share) => share[field]);
-            const decryptedValue = await this.nilqlWrapper.decrypt(fieldShares);
-            record[field] = Number(decryptedValue);
-          }
+    // Group records across nodes by _id
+    const recordGroups = resultsFromAllNodes.reduce((acc, nodeResult) => {
+      nodeResult.data.forEach((record) => {
+        const existingGroup = acc.find((group) =>
+          group.shares.some((share) => share._id === record._id)
+        );
+        if (existingGroup) {
+          existingGroup.shares.push(record);
+        } else {
+          acc.push({ shares: [record], recordIndex: record._id });
         }
-        return record;
+      });
+      return acc;
+    }, []);
+
+    const recombinedRecords = await Promise.all(
+      recordGroups.map(async (record) => {
+        const recombined = await this.nilqlWrapper.unify(record.shares);
+        return recombined;
       })
     );
-
-    return decryptedRecords;
+    return recombinedRecords;
   }
 }
