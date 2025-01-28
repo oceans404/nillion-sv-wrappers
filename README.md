@@ -78,7 +78,7 @@ node examples/nilQlEncryption.js
 Copy the .env.example to create a .env file that uses the example org
 
 ```
-cp .env.example .env
+cp examples/.env.example examples/.env
 ```
 
 Run example to encrypt and upload data to all nodes, then read data from nodes.

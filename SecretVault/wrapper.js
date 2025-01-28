@@ -222,7 +222,14 @@ export class SecretVaultWrapper {
    * @returns {Promise<array>} Array of write results from each node
    */
   async writeToNodes(data) {
-    const transformedData = await this.allotData(data);
+    // add a _id field to each record if it doesn't exist
+    const idData = data.map((record) => {
+      if (!record._id) {
+        return { ...record, _id: uuidv4() };
+      }
+      return record;
+    });
+    const transformedData = await this.allotData(idData);
     const results = [];
 
     for (let i = 0; i < this.nodes.length; i++) {
