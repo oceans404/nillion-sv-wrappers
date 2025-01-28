@@ -1,13 +1,12 @@
-import { SecretVaultWrapper } from '../SecretVault/wrapper.js';
+import { SecretVaultWrapper } from 'nillion-sv-wrappers';
 import { orgConfig } from './orgConfig.js';
 
 async function main() {
   try {
+    console.log(orgConfig);
     const org = new SecretVaultWrapper(
       orgConfig.nodes,
-      orgConfig.orgCredentials,
-      null, // schemaId
-      3600 // optional: set the API token expiry time in seconds
+      orgConfig.orgCredentials
     );
     await org.init();
 

@@ -1,0 +1,17 @@
+{
+  "name": "examples",
+  "version": "1.0.0",
+  "description": "Examples of using the nillion-sv-wrappers library",
+  "main": "index.js",
+  "type": "module",
+  "license": "AGPL-version-3.0",
+  "private": false,
+  "engines": {
+    "node": ">= 14.0.0",
+    "npm": ">= 6.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "nillion-sv-wrappers": "../"
+  }
+}

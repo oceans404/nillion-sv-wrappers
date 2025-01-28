@@ -1,4 +1,4 @@
-import { NilQLWrapper } from '../nilQl/wrapper.js';
+import { NilQLWrapper } from 'nillion-sv-wrappers';
 
 /**
  * This is a standalone example of using NilQLWrapper to encrypt and decrypt data.

@@ -1,4 +1,4 @@
-import { SecretVaultWrapper } from '../SecretVault/wrapper.js';
+import { SecretVaultWrapper } from 'nillion-sv-wrappers';
 import { orgConfig } from './orgConfig.js';
 import schema from './schema.json' assert { type: 'json' };
 

@@ -1,4 +1,4 @@
-import { NilQLWrapper } from '../nilQl/wrapper.js';
+import { NilQLWrapper } from 'nillion-sv-wrappers';
 
 /**
  * This is a standalone example of using NilQLWrapper to encrypt and decrypt data.
@@ -7,7 +7,6 @@ import { NilQLWrapper } from '../nilQl/wrapper.js';
 async function main() {
   // Example data to encrypt
   const secretData = {
-    _id: '83264c5a-27a9-4ec9-ab62-633045fad57e',
     years_in_web3: { $allot: 4 },
     responses: [
       { rating: 5, question_number: 1 },

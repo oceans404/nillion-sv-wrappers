@@ -1,13 +1,11 @@
-import { SecretVaultWrapper } from '../SecretVault/wrapper.js';
+import { SecretVaultWrapper } from 'nillion-sv-wrappers';
 import { orgConfig } from './orgConfig.js';
-import { v4 as uuidv4 } from 'uuid';
 
 const SCHEMA_ID = 'a5de8f53-821a-48a7-9a42-f31cbb7c71f0';
 
 // $allot signals that the value will be encrypted to one $share per node before writing to the collection
 const web3ExperienceSurveyData = [
   {
-    _id: uuidv4(),
     years_in_web3: { $allot: 4 },
     responses: [
       { rating: 5, question_number: 1 },
@@ -15,7 +13,6 @@ const web3ExperienceSurveyData = [
     ],
   },
   {
-    _id: uuidv4(),
     years_in_web3: { $allot: 1 },
     responses: [
       { rating: 2, question_number: 1 },
@@ -44,8 +41,8 @@ async function main() {
 
     const dataRead = await collection.readFromNodes({});
     console.log(
-      '📚 Data read first 3 records from nodes:',
-      dataRead.slice(0, 3)
+      '📚 Read new records:',
+      dataRead.slice(0, web3ExperienceSurveyData.length)
     );
   } catch (error) {
     console.error('❌ Failed to use SecretVaultWrapper:', error.message);
