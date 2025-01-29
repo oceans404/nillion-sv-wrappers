@@ -11,9 +11,12 @@ import { nilql } from '@nillion/nilql';
  * const shares = await wrapper.encrypt(sensitiveData);
  */
 export class NilQLWrapper {
-  constructor(cluster) {
+  constructor(cluster, operation = 'store') {
     this.cluster = cluster;
     this.secretKey = null;
+    this.operation = {
+      [operation]: true,
+    };
   }
 
   /**
@@ -22,9 +25,10 @@ export class NilQLWrapper {
    * @returns {Promise<void>}
    */
   async init() {
-    this.secretKey = await nilql.SecretKey.generate(this.cluster, {
-      store: true,
-    });
+    this.secretKey = await nilql.SecretKey.generate(
+      this.cluster,
+      this.operation
+    );
   }
 
   /**
@@ -86,32 +90,10 @@ export class NilQLWrapper {
    * @returns {Promise<object>} Original data structure with decrypted values
    */
   async unify(shares) {
-    let createdAtTimestamp = null;
-    let updatedAtTimestamp = null;
-    // Remove _created and _updated properties from each share before unifying
-    // These SecretVault timestamps are slightly different across nodes, and
-    // the unify function needs all data other than $shares to be exactly the same
-    const cleanedData = shares.map(({ _created, _updated, ...rest }, i) => {
-      if (i === 0) {
-        createdAtTimestamp = _created;
-        updatedAtTimestamp = _updated;
-      }
-
-      return rest;
-    });
-
     if (!this.secretKey) {
       throw new Error('NilQLWrapper not initialized. Call init() first.');
     }
-    const unifiedResult = await nilql.unify(this.secretKey, cleanedData);
-
-    // Add back the created and updated timestamps from SecretVault if they existed
-    if (!!createdAtTimestamp) {
-      unifiedResult['_created'] = createdAtTimestamp;
-    }
-    if (!!updatedAtTimestamp) {
-      unifiedResult['_updated'] = updatedAtTimestamp;
-    }
+    const unifiedResult = await nilql.unify(this.secretKey, shares);
     return unifiedResult;
   }
 }

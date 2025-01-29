@@ -14,10 +14,17 @@ import { v4 as uuidv4 } from 'uuid';
  * await vault.writeToNodes(data, ['sensitiveField']);
  */
 export class SecretVaultWrapper {
-  constructor(nodes, credentials, schemaId = null, tokenExpirySeconds = 3600) {
+  constructor(
+    nodes,
+    credentials,
+    schemaId = null,
+    operation = 'store',
+    tokenExpirySeconds = 3600
+  ) {
     this.nodes = nodes;
     this.credentials = credentials;
     this.schemaId = schemaId;
+    this.operation = operation;
     this.tokenExpirySeconds = tokenExpirySeconds;
     this.nilqlWrapper = null;
   }
@@ -26,8 +33,9 @@ export class SecretVaultWrapper {
    * Updates the schema ID for the SecretVaultWrapper
    * @param {string} schemaId - The new schema ID
    */
-  setSchemaId(schemaId) {
+  setSchemaId(schemaId, operation = this.operation) {
     this.schemaId = schemaId;
+    this.operation = operation;
   }
 
   /**
@@ -75,7 +83,10 @@ export class SecretVaultWrapper {
       }))
     );
 
-    this.nilqlWrapper = new NilQLWrapper({ nodes: nodeConfigs });
+    this.nilqlWrapper = new NilQLWrapper(
+      { nodes: nodeConfigs },
+      this.operation
+    );
     await this.nilqlWrapper.init();
     return this.nilqlWrapper;
   }

@@ -1,7 +1,7 @@
 import { SecretVaultWrapper } from 'nillion-sv-wrappers';
 import { orgConfig } from './orgConfig.js';
 
-const SCHEMA_ID = 'a5de8f53-821a-48a7-9a42-f31cbb7c71f0';
+const SCHEMA_ID = '77010f94-9c42-4bef-b96d-c639d0081626';
 
 // $allot signals that the value will be encrypted to one $share per node before writing to the collection
 const web3ExperienceSurveyData = [
@@ -31,8 +31,6 @@ async function main() {
     await collection.init();
 
     const dataWritten = await collection.writeToNodes(web3ExperienceSurveyData);
-
-    console.log('📚 Data written:', dataWritten[0].result.errors);
 
     const newIds = [
       ...new Set(dataWritten.map((item) => item.result.data.created).flat()),
