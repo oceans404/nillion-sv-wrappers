@@ -22,11 +22,30 @@ export class SecretVaultWrapper {
     tokenExpirySeconds = 3600
   ) {
     this.nodes = nodes;
+    this.nodesJwt = null;
     this.credentials = credentials;
     this.schemaId = schemaId;
     this.operation = operation;
     this.tokenExpirySeconds = tokenExpirySeconds;
     this.nilqlWrapper = null;
+  }
+
+  /**
+   * Initializes the SecretVaultWrapper by generating tokens for all nodes
+   * and setting up the NilQLWrapper
+   * @returns {Promise<NilQLWrapper>} Initialized NilQLWrapper instance
+   */
+  async init() {
+    const nodeConfigs = await Promise.all(
+      this.nodes.map(async (node) => ({
+        url: node.url,
+        jwt: await this.generateNodeToken(node.did),
+      }))
+    );
+    this.nodesJwt = nodeConfigs;
+    this.nilqlWrapper = new NilQLWrapper({ nodes: this.nodes }, this.operation);
+    await this.nilqlWrapper.init();
+    return this.nilqlWrapper;
   }
 
   /**
@@ -68,27 +87,6 @@ export class SecretVaultWrapper {
       })
     );
     return tokens;
-  }
-
-  /**
-   * Initializes the SecretVaultWrapper by generating tokens for all nodes
-   * and setting up the NilQLWrapper
-   * @returns {Promise<NilQLWrapper>} Initialized NilQLWrapper instance
-   */
-  async init() {
-    const nodeConfigs = await Promise.all(
-      this.nodes.map(async (node) => ({
-        url: node.url,
-        jwt: await this.generateNodeToken(node.did),
-      }))
-    );
-
-    this.nilqlWrapper = new NilQLWrapper(
-      { nodes: nodeConfigs },
-      this.operation
-    );
-    await this.nilqlWrapper.init();
-    return this.nilqlWrapper;
   }
 
   /**

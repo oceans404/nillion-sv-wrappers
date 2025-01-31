@@ -1,7 +1,7 @@
 import { SecretVaultWrapper } from 'nillion-sv-wrappers';
 import { orgConfig } from './orgConfig.js';
 
-const SCHEMA_ID = '77010f94-9c42-4bef-b96d-c639d0081626';
+const SCHEMA_ID = 'c415ad2d-055d-4aad-813b-39d067242642';
 
 // $allot signals that the value will be encrypted to one $share per node before writing to the collection
 const web3ExperienceSurveyData = [

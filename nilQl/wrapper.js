@@ -1,5 +1,11 @@
 import { nilql } from '@nillion/nilql';
 
+// Define an enum for key types
+const KeyType = {
+  CLUSTER: 'cluster',
+  SECRET: 'secret',
+};
+
 /**
  * NilQLWrapper provides encryption and decryption of data using Nillion's technology.
  * It generates and manages secret keys, splits data into shares when encrypting,
@@ -11,12 +17,18 @@ import { nilql } from '@nillion/nilql';
  * const shares = await wrapper.encrypt(sensitiveData);
  */
 export class NilQLWrapper {
-  constructor(cluster, operation = 'store') {
+  constructor(
+    cluster,
+    operation = 'store',
+    secretKey = null, // option to pass in your own secret key
+    keyType = KeyType.CLUSTER
+  ) {
     this.cluster = cluster;
-    this.secretKey = null;
+    this.secretKey = secretKey;
     this.operation = {
       [operation]: true,
     };
+    this.keyType = keyType;
   }
 
   /**
@@ -25,10 +37,18 @@ export class NilQLWrapper {
    * @returns {Promise<void>}
    */
   async init() {
-    this.secretKey = await nilql.SecretKey.generate(
-      this.cluster,
-      this.operation
-    );
+    if (this.secretKey === null && this.keyType === KeyType.SECRET) {
+      this.secretKey = await nilql.SecretKey.generate(
+        this.cluster,
+        this.operation
+      );
+    }
+    if (this.keyType === KeyType.CLUSTER) {
+      this.secretKey = await nilql.ClusterKey.generate(
+        this.cluster,
+        this.operation
+      );
+    }
   }
 
   /**
