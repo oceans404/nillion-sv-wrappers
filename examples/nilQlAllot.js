@@ -6,14 +6,15 @@ import { NilQLWrapper } from 'nillion-sv-wrappers';
  */
 async function main() {
   // Example data to encrypt
-  const secretData = {
-    years_in_web3: { $allot: 4 },
-    responses: [
-      { rating: 5, question_number: 1 },
-      { rating: 3, question_number: 2 },
-    ],
-    _created: '2025-01-25T01:49:58.316Z',
-    _updated: '2025-01-25T01:49:58.316Z',
+  const data = {
+    name: { $allot: 'Steph' },
+    years_in_web3: { $allot: 5 },
+    test_nested: {
+      test_nested_2: {
+        test_nested_3: { $allot: 'nested 3 levels down' },
+      },
+    },
+    rating_of_product: 8,
   };
 
   // The cluster config just needs an array of nodes for NilQLWrapper
@@ -28,7 +29,7 @@ async function main() {
     const encryptionWrapper = new NilQLWrapper(cluster);
     await encryptionWrapper.init();
 
-    const allotted = await encryptionWrapper.prepareAndAllot(secretData);
+    const allotted = await encryptionWrapper.prepareAndAllot(data);
     console.log('📚 Allot:', allotted);
 
     const unified = await encryptionWrapper.unify(allotted);

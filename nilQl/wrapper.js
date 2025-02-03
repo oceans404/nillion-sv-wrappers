@@ -80,27 +80,51 @@ export class NilQLWrapper {
   }
 
   /**
-   * Prepares data with $allot markers and splits into encrypted shares
-   * @param {object} data - Object with fields marked for encryption using $allot
-   * @throws {Error} If NilQLWrapper hasn't been initialized
-   * @returns {Promise<Array>} Array of encrypted shares for each node in cluster
+   * Recursively encrypts all values marked with $allot in the given data object
+   * and prepares it for secure processing.
+   *
+   * - Traverses the entire object structure, handling nested objects at any depth.
+   * - Encrypts values associated with the $allot key using nilql.encrypt().
+   * - Preserves non-$allot values and maintains the original object structure.
+   * - Calls nilql.allot() on the fully processed data before returning.
+   *
+   * @param {object} data - The input object containing fields marked with $allot for encryption.
+   * @throws {Error} If NilQLWrapper has not been initialized with a secret key.
+   * @returns {Promise<object>} The processed object with encrypted $allot values.
    */
   async prepareAndAllot(data) {
     if (!this.secretKey) {
       throw new Error('NilQLWrapper not initialized. Call init() first.');
     }
-    const encrypted = {};
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value === 'object' && '$allot' in value) {
-        encrypted[key] = {
-          $allot: await nilql.encrypt(this.secretKey, value.$allot),
-        };
-      } else {
-        encrypted[key] = value;
-      }
-    }
 
-    return nilql.allot(encrypted);
+    const encryptDeep = async (obj) => {
+      console.log('obj', obj);
+      if (typeof obj !== 'object' || obj === null) {
+        return obj;
+      }
+
+      const encrypted = Array.isArray(obj) ? [] : {};
+
+      for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'object' && value !== null) {
+          if ('$allot' in value) {
+            encrypted[key] = {
+              $allot: await nilql.encrypt(this.secretKey, value.$allot),
+            };
+          } else {
+            encrypted[key] = await encryptDeep(value); // Recurse into nested objects
+          }
+        } else {
+          encrypted[key] = value;
+        }
+      }
+      console.log('encrypted', encrypted);
+      return encrypted;
+    };
+
+    const encryptedData = await encryptDeep(data);
+    console.log('encryptedData', encryptedData);
+    return nilql.allot(encryptedData);
   }
 
   /**
