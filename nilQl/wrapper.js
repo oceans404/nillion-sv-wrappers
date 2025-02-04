@@ -98,7 +98,6 @@ export class NilQLWrapper {
     }
 
     const encryptDeep = async (obj) => {
-      console.log('obj', obj);
       if (typeof obj !== 'object' || obj === null) {
         return obj;
       }
@@ -118,12 +117,10 @@ export class NilQLWrapper {
           encrypted[key] = value;
         }
       }
-      console.log('encrypted', encrypted);
       return encrypted;
     };
 
     const encryptedData = await encryptDeep(data);
-    console.log('encryptedData', encryptedData);
     return nilql.allot(encryptedData);
   }
 

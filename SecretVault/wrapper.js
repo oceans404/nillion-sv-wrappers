@@ -244,9 +244,12 @@ export class SecretVaultWrapper {
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i];
       try {
-        const nodeData = transformedData.map(
-          (encryptedShares) => encryptedShares[i]
-        );
+        const nodeData = transformedData.map((encryptedShares) => {
+          if (encryptedShares.length !== this.nodes.length) {
+            return encryptedShares[0];
+          }
+          return encryptedShares[i];
+        });
         const jwt = await this.generateNodeToken(node.did);
         const payload = {
           schema: this.schemaId,
