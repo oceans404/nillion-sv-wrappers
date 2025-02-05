@@ -12,9 +12,11 @@ async function main() {
     test_nested: {
       test_nested_2: {
         test_nested_3: { $allot: 'nested 3 levels down' },
+        test_nested_4: null,
       },
     },
     rating_of_product: 8,
+    test_null: null,
   };
 
   // The cluster config just needs an array of nodes for NilQLWrapper
