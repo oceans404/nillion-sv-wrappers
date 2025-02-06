@@ -1,6 +1,6 @@
 {
   "name": "nillion-sv-wrappers",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Wrappers for Nillion's Secret Vault and nilQL",
   "main": "index.js",
   "type": "module",

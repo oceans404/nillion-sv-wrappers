@@ -319,4 +319,73 @@ export class SecretVaultWrapper {
     );
     return recombinedRecords;
   }
+
+  /**
+   * Updates data on all nodes, with optional field encryption
+   * @param {array} recordUpdate - Data to update
+   * @param {object} filter - Filter criteria for which records to update
+   * @returns {Promise<array>} Array of update results from each node
+   */
+  async updateDataToNodes(recordUpdate, filter = {}) {
+    const results = [];
+
+    const transformedData = await this.allotData([recordUpdate]);
+    for (let i = 0; i < this.nodes.length; i++) {
+      const node = this.nodes[i];
+      try {
+        const [nodeData] = transformedData.map((encryptedShares) => {
+          if (encryptedShares.length !== this.nodes.length) {
+            return encryptedShares[0];
+          }
+          return encryptedShares[i];
+        });
+        const jwt = await this.generateNodeToken(node.did);
+        const payload = {
+          schema: this.schemaId,
+          update: {
+            $set: nodeData,
+          },
+          filter,
+        };
+        const result = await this.makeRequest(
+          node.url,
+          'data/update',
+          jwt,
+          payload
+        );
+        results.push({ node: node.url, result });
+      } catch (error) {
+        console.error(`❌ Failed to write to ${node.url}:`, error.message);
+        results.push({ node: node.url, error: error.message });
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Deletes data from all nodes based on the provided filter
+   * @param {object} filter - Filter criteria for which records to delete
+   * @returns {Promise<array>} Array of deletion results from each node
+   */
+  async deleteDataFromNodes(filter = {}) {
+    const results = [];
+
+    for (const node of this.nodes) {
+      try {
+        const jwt = await this.generateNodeToken(node.did);
+        const payload = { schema: this.schemaId, filter };
+        const result = await this.makeRequest(
+          node.url,
+          'data/delete',
+          jwt,
+          payload
+        );
+        results.push({ node: node.url, result });
+      } catch (error) {
+        console.error(`❌ Failed to delete from ${node.url}:`, error.message);
+        results.push({ node: node.url, error: error.message });
+      }
+    }
+    return results;
+  }
 }

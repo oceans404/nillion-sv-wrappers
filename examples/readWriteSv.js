@@ -1,6 +1,7 @@
 import { SecretVaultWrapper } from 'nillion-sv-wrappers';
 import { orgConfig } from './orgConfig.js';
 
+// update schema id with your own value
 const SCHEMA_ID = '28a75bb3-690d-4558-b433-5cd07e987a36';
 
 // $allot signals that the value will be encrypted to one $share per node before writing to the collection
